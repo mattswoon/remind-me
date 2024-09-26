@@ -60,6 +60,30 @@ impl Store {
             .collect::<Result<Vec<_>, _>>()?;
         Ok(records)
     }
+
+    pub fn find_by_what(&self, pattern: &str) -> Result<Vec<Id<Reminder>>, Error> {
+        let conn = self.connection()?;
+        let mut stmt = conn.prepare("SELECT * FROM reminders WHERE state = ? and what LIKE ?")?;
+        let records = stmt.query_and_then(
+            (ReminderState::Active.as_i32(), format!("%{}%", pattern)),
+            |row| {
+                let id = row.get(0)?;
+                let what = row.get(1)?;
+                let when = row.get(2)?;
+                let state = row.get(3).map_err(Into::into).and_then(ReminderState::from_i32)?;
+                Ok::<_, Error>(Id { id, value: Reminder { what, when, state }})
+            }
+        )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(records)
+    }
+
+    pub fn dismiss_by_id(&self, id: i64) -> Result<(), Error> {
+        let conn = self.connection()?;
+        let mut stmt = conn.prepare("UPDATE reminders SET state = ? WHERE id = ?")?;
+        stmt.execute((ReminderState::Dismissed.as_i32(), id))?;
+        Ok(())
+    }
 }
 
 fn init_db<P: AsRef<Path>>(path: P) -> Result<(), Error> {

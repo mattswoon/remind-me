@@ -28,9 +28,10 @@ impl Reminder {
 
     pub fn time_remaining_str(&self, now: DateTime<Local>) -> String {
         let td = self.when - now;
+        let sign = (now > self.when).then_some("-").unwrap_or("");
         let hours = td.num_hours();
         let minutes = td.num_minutes() % 60;
-        format!("{}:{}", hours, minutes)
+        format!("{}{}:{}", sign, hours, minutes.abs())
     }
 }
 
