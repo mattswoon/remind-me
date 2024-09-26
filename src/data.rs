@@ -23,7 +23,14 @@ impl Reminder {
     }
 
     pub fn is_overdue(&self, now: DateTime<Local>) -> bool {
-        (self.when > now) & (self.state == ReminderState::Active)
+        (now > self.when) & (self.state == ReminderState::Active)
+    }
+
+    pub fn time_remaining_str(&self, now: DateTime<Local>) -> String {
+        let td = self.when - now;
+        let hours = td.num_hours();
+        let minutes = td.num_minutes() % 60;
+        format!("{}:{}", hours, minutes)
     }
 }
 

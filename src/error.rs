@@ -30,7 +30,16 @@ impl std::fmt::Display for Error {
 
 impl std::fmt::Display for WhenParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        Ok(())
+        match self {
+            WhenParseError::NoCaptures(s) => 
+                write!(f, "Couldn't determine when from \"{}\"", s),
+            WhenParseError::NoNumber(s) => 
+                write!(f, "Couldn't determine a number from \"{}\"", s),
+            WhenParseError::NoUnit(s) =>
+                write!(f, "Couldn't determine a time unit form \"{}\"", s),
+            WhenParseError::ParseInt(e) =>
+                write!(f, "Couldn't parse an integer: {}", e),
+        }
     }
 }
 
