@@ -3,6 +3,6 @@
 ## Installation
 
 ```
-cargo install --git 
+cargo install --git https://github.com/mattswoon/remind-me.git
 echo "remind-me summary" >> .bashrc
 ```
