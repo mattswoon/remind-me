@@ -7,6 +7,8 @@ use rusqlite::Connection;
 use crate::error::Error;
 use crate::data::{
     Reminder,
+    ReminderState,
+    Id,
 };
 
 
@@ -22,6 +24,7 @@ impl Store {
             .data_local_dir()
             .join("db.sqlite");
         if !path.exists() {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
             init_db(&path)?;
         }
         Ok(Store { path })
@@ -34,18 +37,35 @@ impl Store {
     pub fn insert_reminder(&self, reminder: &Reminder) -> Result<(), Error> {
         let conn = self.connection()?;
         conn.execute(
-            "INSERT INTO reminders (what, when, state) VALUES (?, ?, ?)",
+            "INSERT INTO reminders (what, when_, state) VALUES (?, ?, ?)",
             (&reminder.what, &reminder.when, reminder.state.as_i32())
         )?;
         // TODO: return inserted
         Ok(())
+    }
+
+    pub fn list_active(&self) -> Result<Vec<Id<Reminder>>, Error> {
+        let conn = self.connection()?;
+        let mut stmt = conn.prepare("SELECT * FROM reminders WHERE state = ?")?;
+        let records = stmt.query_and_then(
+            [ReminderState::Active.as_i32()],
+            |row| {
+                let id = row.get(0)?;
+                let what = row.get(1)?;
+                let when = row.get(2)?;
+                let state = row.get(3).map_err(Into::into).and_then(ReminderState::from_i32)?;
+                Ok::<_, Error>(Id { id, value: Reminder { what, when, state }})
+            }
+        )?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(records)
     }
 }
 
 fn init_db<P: AsRef<Path>>(path: P) -> Result<(), Error> {
     let conn = Connection::open(path)?;
     conn.execute(
-        "CREATE TABLE reminders (id INTEGER PRIMARY KEY, what TEXT, when TEXT, state INTEGER)",
+        "CREATE TABLE reminders (id INTEGER PRIMARY KEY, what TEXT, when_ TEXT, state INTEGER);",
         ()
     )?;
     Ok(())

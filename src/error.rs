@@ -1,7 +1,37 @@
 #[derive(Debug)]
 pub enum Error {
     NoValidHomeDirectory,
-    Sqlite(rusqlite::Error)
+    UnknownReminderState,
+    Sqlite(rusqlite::Error),
+    WhenParse(WhenParseError),
+}
+
+#[derive(Debug)]
+pub enum WhenParseError {
+    NoCaptures(String),
+    NoNumber(String),
+    NoUnit(String),
+    ParseInt(std::num::ParseIntError),
+}
+
+impl std::error::Error for Error {}
+impl std::error::Error for WhenParseError {}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            Error::NoValidHomeDirectory => write!(f, "No valid home directory"),
+            Error::UnknownReminderState => write!(f, "Unknown reminder state"),
+            Error::Sqlite(e) => write!(f, "Sqlite error: {}", e),
+            Error::WhenParse(e) => write!(f, "Couldn't parse when: {}", e),
+        }
+    }
+}
+
+impl std::fmt::Display for WhenParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        Ok(())
+    }
 }
 
 macro_rules! from {
@@ -15,3 +45,5 @@ macro_rules! from {
 }
 
 from!(Error, rusqlite::Error, Sqlite);
+from!(Error, WhenParseError, WhenParse);
+from!(WhenParseError, std::num::ParseIntError, ParseInt);

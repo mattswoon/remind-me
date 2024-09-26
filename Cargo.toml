@@ -9,4 +9,5 @@ clap = { version = "4.5.18", features = ["derive"] }
 comfy-table = "7.1.1"
 directories = "5.0.1"
 inquire = "0.7.5"
+regex = "1.10.6"
 rusqlite = { version = "0.32.1", features = ["chrono"] }
