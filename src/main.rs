@@ -46,16 +46,18 @@ fn main() -> Result<(), Error> {
             let now = Local::now();
             table
                 .load_preset(UTF8_FULL)
-                .set_header(vec!["What", "When", "Time remaining (HH:MM)"]);
+                .set_header(vec!["Id", "What", "When", "Time remaining (HH:MM)"]);
             for reminder in store.list_active()? {
                 if reminder.value.is_overdue(now) {
                     table.add_row(vec![
+                        Cell::new(&reminder.id).fg(Color::Red),
                         Cell::new(&reminder.value.what).fg(Color::Red),
                         Cell::new(reminder.value.when.format("%H:%M %Y-%m-%d")).fg(Color::Red),
                         Cell::new(reminder.value.time_remaining_str(now)).fg(Color::Red),
                     ]);
                 } else {
                     table.add_row(vec![
+                        Cell::new(&reminder.id),
                         Cell::new(&reminder.value.what),
                         Cell::new(reminder.value.when.format("%H:%M %Y-%m-%d")),
                         Cell::new(reminder.value.time_remaining_str(now)),
