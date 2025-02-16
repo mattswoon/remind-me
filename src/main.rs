@@ -51,7 +51,7 @@ fn main() -> Result<(), Error> {
                 if reminder.value.is_overdue(now) {
                     table.add_row(vec![
                         Cell::new(&reminder.id).fg(Color::Red),
-                        Cell::new(&reminder.value.what).fg(Color::Red),
+                        Cell::new(&textwrap::fill(reminder.value.what.as_str(), 50)).fg(Color::Red),
                         Cell::new(reminder.value.when.format("%H:%M %Y-%m-%d")).fg(Color::Red),
                         Cell::new(reminder.value.time_remaining_str(now)).fg(Color::Red),
                     ]);
