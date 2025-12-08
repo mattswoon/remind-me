@@ -13,6 +13,34 @@ use comfy_table::{
     Color,
     presets::UTF8_FULL,
 };
+use nom::{
+    Parser as NomParser,
+    IResult,
+    multi::{
+        many_till,
+    },
+    character::complete::{
+        anychar,
+        space1,
+        space0,
+        digit1,
+    },
+    combinator::{
+        peek,
+        recognize,
+        map,
+        map_res,
+    },
+    sequence::{
+        separated_pair,
+    },
+    bytes::complete::{
+        tag,
+    },
+    branch::{
+        alt,
+    },
+};
 
 #[derive(Parser)]
 #[command(version, about, long_about=None)]
@@ -28,6 +56,10 @@ enum Action {
         what: String, 
         #[arg(value_parser=When::from_str)]
         when: When 
+    },
+    AddSmart {
+        #[clap(trailing_var_arg=true)]
+        args: Vec<String>,
     },
     Find {
         what: String,
@@ -73,6 +105,13 @@ fn main() -> Result<(), Error> {
             store.insert_reminder(&Reminder::new(what, when.as_datetime()))?;
             Ok(())
         },
+        Action::AddSmart { args } => {
+            let store = Store::init()?;
+            let (what, when) = interpret(args.join(" "))?;
+            println!("Ok, I'll remind you \"{}\" at {}", &what, when.as_datetime().format("%H:%M on %Y-%m-%d"));
+            store.insert_reminder(&Reminder::new(what, when.as_datetime()))?;
+            Ok(())
+        },
         Action::Find { what } => {
             let store = Store::init()?;
             let mut table = Table::new();
@@ -104,4 +143,60 @@ fn main() -> Result<(), Error> {
             Ok(())
         }
     }
+}
+
+fn interpret(s: String) -> Result<(String, When), Error> {
+    let (_, (what, when)) = parse_add(s.as_str()).map_err(|e| e.map(|e2| e2.cloned()))?;
+    Ok((what, when))
+}
+
+fn parse_add(input: &str) -> IResult<&str, (String, When)> {
+    let mut parser = separated_pair(
+        map(take_until_parser(_in), |s: &str| s.to_string()),
+        _in,
+        _when
+    );
+    parser.parse(input)
+}
+
+pub fn take_until_parser<'a, P>(parser: P) -> impl NomParser<&'a str, Output=&'a str, Error=<P as NomParser<&'a str>>::Error>
+where
+    P: NomParser<&'a str>,
+{
+    recognize(many_till(anychar, peek(parser)))
+}
+
+pub fn _in(input: &str) -> IResult<&str, &str> {
+    let mut parser = recognize((space1,tag("in"),space1));
+    parser.parse(input)
+}
+
+pub fn _when(input: &str) -> IResult<&str, When> {
+    let mut parser = map_res(
+        (
+            space0,
+            map_res(digit1, |s: &str| s.parse::<u32>()),
+            space0,
+            alt((
+                tag("hours"),
+                tag("hour"),
+                tag("days"),
+                tag("day"),
+                tag("minutes"),
+                tag("minute"),
+                tag("mins"),
+                tag("min"),
+                tag("weeks"),
+                tag("week"),
+            ))
+        ),
+        |(_, num, _, time)| match time {
+            "hours" | "hour" => Ok(When::InHours(num)),
+            "day" | "days" => Ok(When::InDays(num)),
+            "mins" | "minutes" | "min" | "minute" => Ok(When::InMinutes(num)),
+            "week" | "weeks" => Ok(When::InWeeks(num)),
+            _ => Err("unknown time period"),
+        }
+    );
+    parser.parse(input)
 }

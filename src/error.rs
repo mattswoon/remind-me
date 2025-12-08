@@ -4,6 +4,7 @@ pub enum Error {
     UnknownReminderState,
     Sqlite(rusqlite::Error),
     WhenParse(WhenParseError),
+    Nom(nom::Err<nom::error::Error<String>>),
 }
 
 #[derive(Debug)]
@@ -24,6 +25,7 @@ impl std::fmt::Display for Error {
             Error::UnknownReminderState => write!(f, "Unknown reminder state"),
             Error::Sqlite(e) => write!(f, "Sqlite error: {}", e),
             Error::WhenParse(e) => write!(f, "Couldn't parse when: {}", e),
+            Error::Nom(e) => write!(f, "Couldn't parse what and when: {}", e),
         }
     }
 }
@@ -56,3 +58,4 @@ macro_rules! from {
 from!(Error, rusqlite::Error, Sqlite);
 from!(Error, WhenParseError, WhenParse);
 from!(WhenParseError, std::num::ParseIntError, ParseInt);
+from!(Error, nom::Err<nom::error::Error<String>>, Nom);
